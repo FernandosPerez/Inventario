@@ -1,0 +1,5 @@
+img/categorias/inventario/
+img/categorias/perfiles/
+include/conn.php
+node_modules/
+*.zip

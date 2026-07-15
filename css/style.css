@@ -1,0 +1,317 @@
+
+.modal-body {
+    max-height: 70vh; /* Limita la altura del modal */
+    overflow-y: auto; /* Habilita el scroll si es necesario */
+}
+
+.scrollable {
+    max-height: 200px; /* Limita la altura de la parte inferior */
+    overflow-y: auto; /* Habilita el scroll hacia abajo */
+    overflow-x: hidden; /* Desactiva el scroll horizontal */
+    margin-top: 20px; /* Da un pequeño margen superior */
+}
+
+.scrollable .row {
+    flex-wrap: wrap; /* Permite que los cuadros se ajusten cuando no caben */
+}
+
+.scrollable .col-md-2 {
+    margin-bottom: 10px; /* Espaciado entre los cuadros */
+}
+
+/* Estilo para las imágenes */
+.image-container {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+}
+
+/* Espaciado para separar la parte superior y la parte inferior */
+.modal-body hr {
+    margin: 20px 0;
+}
+
+
+.centrar{
+    display: flex;
+    justify-content: center;
+}
+.p{
+    color: #858796 !important;
+}
+.span{
+    color: #858796 !important;
+}
+p{
+    color: #858796 !important;
+}
+
+
+/** NOTAS**/
+.note {
+    display: inline-block;
+    margin: 10px;
+    width: 200px;
+}
+
+.post-it {
+    background-color: #4e73df;
+    padding: 10px;
+    border: 1px solid #4e73df;
+    border-radius: 8px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.post-it:hover {
+    background-color: #6291f0; 
+}
+
+
+#add-note {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+#add-note:hover {
+    background-color: #6291f0;
+}
+
+#notes-container {
+    position: relative;
+    margin-top: 20px;
+}
+#notes-container h1 {
+    margin-bottom: 20px;
+}
+
+
+
+
+
+/**** CALENDARIO
+
+ /* Estilo para resaltar el día actual */
+ .highlight-today {
+    background-color: #4e73df !important;
+    color: white !important;
+}
+
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    color: #858796;
+}
+
+.scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-top: 20px;
+    color: #858796;
+}
+
+.scrollable .row {
+    flex-wrap: wrap;
+    color: #858796;
+}
+
+.scrollable .col-md-2 {
+    margin-bottom: 10px;
+    color: #858796;
+}
+
+.image-container {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+}
+
+.modal-body hr {
+    margin: 20px 0;
+    border-color: #858796;
+}
+
+.modal-title {
+    color: #858796;
+}
+
+.footer{
+    color: #858796; /* Color de texto */
+}
+.fc-toolbar-title {
+text-transform: uppercase !important;
+}
+
+
+
+
+
+/*  chats */
+
+
+#chat-container {
+    display: flex;
+    height: 80vh;
+    border: 1px solid #ddd;
+    margin: 20px;
+}
+
+.chat-list {
+    width: 30%;
+    border-right: 1px solid #ccc;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.chat-preview {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.chat-preview:hover {
+    background-color: #f1f1f1;
+}
+
+.active-chat {
+    background-color: #e0f7fa;
+    font-weight: bold;
+}
+
+.chat-window {
+    width: 70%;
+    padding: 20px;
+}
+
+#messages {
+    height: 60vh;
+    overflow-y: auto;
+    border-bottom: 1px solid #ccc;
+}
+
+.input-area {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+}
+
+textarea {
+    width: 80%;
+    height: 50px;
+    padding: 10px;
+    margin-right: 10px;
+}
+/*
+button {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+*/
+.file-input {
+    position: relative;
+}
+
+.file-input input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 40px;
+    height: 40px;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+}
+
+.file-button {
+    padding: 10px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.file-button:hover {
+    background-color: #1976D2;
+}
+
+.file-preview {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.file-preview img {
+    max-width: 100px;
+    max-height: 100px;
+    margin-right: 10px;
+}
+
+.file-preview a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.ttext{
+    color:rgb(109, 109, 109);
+    text-align:center;
+    cursor: pointer;
+}
+
+
+
+
+table {
+
+  overflow-x:auto;
+}
+table td {
+  word-wrap: break-word;
+  max-width: 465px;
+}
+#tcont td {
+  white-space:inherit;
+}
+
+#tcont2 td {
+  white-space:inherit;
+}
+
+
+.lista{
+    height:100%; 
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+.c-lista{
+    height:100%; 
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+@media (max-width: 768px) {
+  .lista{
+    height:20vh; 
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+}
+
+.c-lista{
+    height:57vh; 
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+    margin-top: 1vh;
+}
+
+}

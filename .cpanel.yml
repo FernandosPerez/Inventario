@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/$USER/public_html
+    - /usr/bin/rsync -r --exclude '.git' --exclude '.cpanel.yml' --exclude 'node_modules' --exclude 'include/conn.php' . $DEPLOYPATH
