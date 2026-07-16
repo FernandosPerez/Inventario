@@ -2054,7 +2054,8 @@ switch($_REQUEST['op']){
     echo $response;
     break;
 
-case 28:
+
+    case 28:
     $articulo    = (int)$_POST["articulo"];
     $nombre      = strtoupper(trim($_POST["nombre"]));
     $marca       = strtoupper(trim($_POST["marca"]));
@@ -2065,6 +2066,29 @@ case 28:
     try {
         $dbconn->beginTransaction();
 
+        $stmtCod = $dbconn->prepare("SELECT area FROM inventario WHERE id = ?");
+            $stmtCod->execute([$articulo]);
+            $area = $stmtCod->fetchColumn();
+
+            if($area!=$categoria){
+                // ── 1. Incrementar conteo PRIMERO (operación atómica → sin duplicados) ──
+                $dbconn->prepare("UPDATE inventario_indices SET conteo = conteo + 1 WHERE id = ?")
+                        ->execute([$categoria]);
+
+                // ── 2. Leer el código con el conteo YA incrementado ──────────────────
+                $stmt = $dbconn->prepare("SELECT CONCAT(codigo, '-', conteo) AS codigo FROM inventario_indices WHERE id = ?");
+                $stmt->execute([$categoria]);
+                $nuevo_codigo = $stmt->fetchColumn();  // ej: "ACTI-42"
+
+                $dbconn->prepare("UPDATE inventario SET codigo = ? WHERE id = ?")
+               ->execute([$nuevo_codigo,$articulo]);
+            }
+
+
+          
+
+
+
         $dbconn->prepare("UPDATE inventario SET nombre = ?, marca = ?, area = ?, medida = ? WHERE id = ?")
                ->execute([$nombre, $marca, $categoria, $medida, $articulo]);
 
@@ -2072,7 +2096,13 @@ case 28:
         if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
 
             // Leer el código actual para usarlo como nombre de archivo (igual que subefoto.php)
-            $stmtCod = $dbconn->prepare("SELECT codigo FROM inventario WHERE id = ?");
+            $stmtCod = $dbconn->prepare("SELECT IF(
+                                            NULLIF(TRIM(foto), '') IS NULL, 
+                                            codigo, 
+                                            SUBSTRING_INDEX(foto, '.', 1)
+                                        ) AS codigo 
+                                        FROM inventario 
+                                        WHERE id = ?");
             $stmtCod->execute([$articulo]);
             $codigo_actual = $stmtCod->fetchColumn();
 

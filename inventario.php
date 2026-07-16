@@ -76,9 +76,8 @@ img.lazy-foto {
                     if ($filtro_foto == 1) $sql .= " AND (i.foto IS NOT NULL AND i.foto != '')";
                     if ($filtro_foto == 2) $sql .= " AND (i.foto IS NULL OR i.foto = '')";
 
-                    $sql .= " ORDER BY i.area,
-                                       SUBSTRING_INDEX(i.codigo, '-', 1),
-                                       CAST(SUBSTRING_INDEX(i.codigo, '-', -1) AS UNSIGNED)";
+                    $sql .= " ORDER BY SUBSTRING_INDEX(i.codigo, '-', 1),
+         CAST(SUBSTRING_INDEX(i.codigo, '-', -1) AS UNSIGNED)";
 
                     $stmt = $dbconn->prepare($sql);
                     $stmt->execute($params);
@@ -113,9 +112,8 @@ img.lazy-foto {
                     if ($filtro_existencias == 1) $sql .= " HAVING COALESCE(SUM(s.stock), 0) > 0";
                     if ($filtro_existencias == 2) $sql .= " HAVING COALESCE(SUM(s.stock), 0) = 0";
 
-                    $sql .= " ORDER BY i.area,
-                                       SUBSTRING_INDEX(i.codigo, '-', 1),
-                                       CAST(SUBSTRING_INDEX(i.codigo, '-', -1) AS UNSIGNED)";
+                    $sql .= " ORDER BY SUBSTRING_INDEX(i.codigo, '-', 1),
+         CAST(SUBSTRING_INDEX(i.codigo, '-', -1) AS UNSIGNED)";
 
                     $stmt = $dbconn->prepare($sql);
                     $stmt->execute($params);
@@ -346,7 +344,6 @@ img.lazy-foto {
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="js/inventario.js"></script>
 <script>
-    // ── Carga imágenes lazy de la página actual de DataTables ─────────────────
     function cargarImagenesPagina(dtInstance) {
         dtInstance.rows({ page: 'current' }).nodes().each(function (row) {
             $(row).find('img.lazy-foto[data-src]').each(function () {
@@ -360,6 +357,14 @@ img.lazy-foto {
 
     var table = new DataTable('#tcont', {
         responsive: true,
+        order: [],
+    columnDefs: [
+        { targets: [0], visible: false }, // id siempre oculto
+        <?php if ($filtro_plantel == 0): ?>
+        // Vista general: 13 columnas (0=id,1=código,2=nombre,3-11=planteles,12=totales,13=foto... ajusta si difiere)
+        { targets: [4, 5, 6, 8, 9], visible: false }
+        <?php endif; ?>
+    ],
         language: {
             "decimal": "",
             "emptyTable": "No hay información",
@@ -389,12 +394,21 @@ img.lazy-foto {
         }
     });
 
-    // Cargar fotos de la primera página inmediatamente al iniciar
     cargarImagenesPagina(table);
 
-    // Cargar fotos cada vez que DataTables cambia de página, filtra o busca
     table.on('draw.dt', function () {
         cargarImagenesPagina(table);
+    });
+
+    table.on('responsive-display.dt', function (e, datatable, row, showHide) {
+        if (showHide) {
+            $(row.node()).next('tr.child').find('img.lazy-foto[data-src]').each(function () {
+                if (!this.dataset.loaded) {
+                    this.src = this.dataset.src;
+                    this.dataset.loaded = '1';
+                }
+            });
+        }
     });
 
     $("#tcont_wrapper").removeClass("form-inline").addClass("w-100");
