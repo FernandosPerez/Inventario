@@ -359,11 +359,7 @@ img.lazy-foto {
         responsive: true,
         order: [],
     columnDefs: [
-        { targets: [0], visible: false }, // id siempre oculto
-        <?php if ($filtro_plantel == 0): ?>
-        // Vista general: 13 columnas (0=id,1=código,2=nombre,3-11=planteles,12=totales,13=foto... ajusta si difiere)
-        { targets: [4, 5, 6, 8, 9], visible: false }
-        <?php endif; ?>
+        { targets: [0], visible: false }
     ],
         language: {
             "decimal": "",
