@@ -1,4 +1,5 @@
 <?php 
+session_start();
 include("include/error.php"); 
 $sesion=explode("|",$_SESSION["usuario"]);
 $campus=$sesion[2];
@@ -23,7 +24,6 @@ img.lazy-foto {
     <div id="content-wrapper" class="d-flex flex-column">
         <div id="content">
             <?php
-            session_start();
             include("include/perfil.php");
             include("include/conn.php");
 
@@ -172,9 +172,18 @@ img.lazy-foto {
                            data-toggle="modal" data-target="#addProspectModal" onclick="agregarArticulo()">
                             <i class="fas fa-download fa-sm text-white-100"></i> Agregar articulo
                         </a>
-                    <?php else: ?>
-                        <a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm" onclick="historialInventario()">
+                        <a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm" onclick="recibos()">
                             <i class="fas fa-download fa-sm text-white-100"></i> Recibos
+                        </a>
+                        <a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm" onclick="historialInventario()">
+                            <i class="fas fa-download fa-sm text-white-100"></i> Historial de movimientos
+                        </a>
+                    <?php else: ?>
+                        <a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm" onclick="recibos()">
+                            <i class="fas fa-download fa-sm text-white-100"></i> Recibos
+                        </a>
+                        <a class="d-sm-inline-block btn btn-sm btn-primary shadow-sm" onclick="historialInventario()">
+                            <i class="fas fa-download fa-sm text-white-100"></i> Historial de movimientos
                         </a>
                     <?php endif; ?>
                 </div>

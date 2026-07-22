@@ -83,7 +83,6 @@ if(!isset($_SESSION['usuario']))
                                                 </div>
                                                 <div class="d-flex align-items-end flex-column bd-highlight mb-3" style="height: 50px;">
                                                 
-                                                <div class="p-2 bd-highlight"><a href="registro.php">Registrarme</a></div>
                                                 </div>
                                             </div>
                                             <a href="#" class="btn btn-primary btn-user btn-block" id="loginButton" onclick="Login()">

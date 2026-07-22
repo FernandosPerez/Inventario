@@ -1,5 +1,5 @@
 <?php
-include("error.php");
+session_start();
 include("conn.php");
 
 date_default_timezone_set("America/Mexico_City");

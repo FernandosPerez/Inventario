@@ -260,8 +260,8 @@ ajax = objetoAjax();
 
       if(ajax.responseText==2){
         Swal.fire({
-              title: "Error",
-              text: "Ocurrio un error",
+              title: "Sin stock suficiente",
+              text: "No puedes retirar una cantidad mayor de la existente",
               icon: "error"
             });
       }else{
@@ -610,7 +610,7 @@ $('#addProspectModal').modal('show');
 
 async function historialInventario() {
 Swal.fire({
-    title: "Busqueda de acuses de entrega",
+    title: "Busqueda de acuses de Movimientos",
     html: `
     <div class="text-center">
     <img src="./img/svg/search.svg" class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 20rem;">
@@ -719,6 +719,125 @@ Swal.fire({
     divResultado = document.getElementById("impresion");
 
       divResultado.innerHTML = '<iframe id="ulum_tur_d" name="ulum_tur_d" style="height:auto; width:100%; border: 2px gray solid; visibility: hidden;" src="funciones/pdf/inventario_historial.php?finicio=' +finicio.value +'&ffin='+ffin.value+'"></iframe>';
+      window.frames["ulum_tur_d"].focus();
+      setTimeout(function () { window.frames["ulum_tur_d"].print(); }, 200);
+      setTimeout(function () { window.frames["ulum_tur_d"].close(); }, 200);
+  }
+});
+
+}
+
+async function recibos() {
+Swal.fire({
+    title: "Recibos",
+    html: `
+    <div class="text-center">
+    <img src="./img/svg/search.svg" class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 20rem;">
+    </div>
+<div class="row w-100" >
+
+<div class="col-md-6">
+<div class="form-group justify-content-center">
+  <label for="finicio" >Fecha de inicio:</label>
+  <input type="date" id="finicio" class="form-control">
+</div>
+</div>
+
+<div class="col-md-6">
+<div class="form-group justify-content-center">
+  <label for="ffin" >Fecha final:</label>
+  <input type="date" id="ffin" class="form-control">
+  </div>
+</div>
+
+</div>
+        `,
+    focusConfirm: true,
+    allowOutsideClick: true,
+  preConfirm: () => {
+
+
+      var finicio = document.getElementById("finicio").value;
+      var ffin = document.getElementById("ffin").value;
+
+
+      if(!finicio || !ffin){
+        //alert("Coloca un rango de fechas válido")
+
+        if(!finicio){
+          if ($("#ffin").hasClass('border border-danger')) {
+              $("#ffin").removeClass("border border-danger");
+          }else{
+            if(!ffin){
+              $("#ffin").addClass("border border-danger");
+            }else{
+              $("#ffin").removeClass("border border-danger");
+            }
+          }
+
+          //clase de la animación
+
+          if ($("#finicio").hasClass('border border-danger')) {
+          }else{
+            $("#finicio").addClass("border border-danger");
+          }
+         
+
+          if ($("#finicio").hasClass('animate__bounceIn')) {
+            $("#finicio").removeClass("animate__bounceIn");
+            $("#finicio").addClass("animate__bounceIn");
+
+          }else{
+            $("#finicio").addClass("animate__bounceIn");
+          }
+         
+
+
+          Swal.showValidationMessage('Ingresa la fecha inicial');
+            return false;
+
+        }
+        
+        if(!ffin){
+          if ($("#finicio").hasClass('border border-danger')) {
+              $("#finicio").removeClass("border border-danger");
+          }else{
+            if(!finicio){
+              $("#finicio").addClass("border border-danger");
+            }else{
+              $("#finicio").removeClass("border border-danger");
+            }
+          }
+
+          //clase de la animación
+
+          if ($("#ffin").hasClass('border border-danger')) {
+          }else{
+            $("#ffin").addClass("border border-danger");
+          }
+
+          if ($("#ffin").hasClass('animate__bounceIn')) {
+            $("#ffin").removeClass("animate__bounceIn");
+            $("#ffin").addClass("animate__bounceIn");
+
+          }else{
+            $("#ffin").addClass("animate__bounceIn");
+          }
+          Swal.showValidationMessage('Ingresa la fecha final');
+            return false;
+        }
+        
+      }
+
+
+    return ; // Allow closing and pass the name as the result
+  }
+}).then((result) => {
+  if (result.isConfirmed) {
+    
+    divResultado = document.getElementById("impresion");
+
+      divResultado.innerHTML = '<iframe id="ulum_tur_d" name="ulum_tur_d" style="height:auto; width:100%; border: 2px gray solid; visibility: hidden;" src="funciones/pdf/recibos.php?finicio=' +finicio.value +'&ffin='+ffin.value+'"></iframe>';
       window.frames["ulum_tur_d"].focus();
       setTimeout(function () { window.frames["ulum_tur_d"].print(); }, 200);
       setTimeout(function () { window.frames["ulum_tur_d"].close(); }, 200);

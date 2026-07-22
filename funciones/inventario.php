@@ -1630,44 +1630,15 @@ switch($_REQUEST['op']){
         $comentarios=$_POST["comentarios"];
         $cantidad=$_POST["cantidad"];
         $destino=$_POST["usuariofinal"];
-        $stmt = $dbconn->prepare("SELECT * FROM inventario where id='".$articulo."'");
+        $stmt = $dbconn->prepare("SELECT * FROM inventario_stock where articulo_id='".$articulo."' and plantel_id='".$campus."'");
         $stmt->execute();
         $row = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-        if($campus== 1){
-            $scampus=$row[0]["sanjuan"];
-            $ncampus="sanjuan";
-        }else if($campus== 2){
-            $scampus=$row[0]["aculco"];
-            $ncampus="aculco";
-        }else if($campus== 3){
-            $scampus=$row[0]["tecamac"];
-            $ncampus="tecamac";
-        }else if($campus== 4){
-            $scampus=$row[0]["atlacomulco"];
-            $ncampus="atlacomulco";
-        }else if($campus== 5){
-            $scampus=$row[0]["tepeji"];
-            $ncampus="tepeji";
-        }else if($campus== 6){
-            $scampus=$row[0]["nopala"];
-            $ncampus="nopala";
-        }else if($campus== 7){
-            $scampus=$row[0]["enlinea"];
-            $ncampus="enlinea";
-        }else if($campus== 8){
-            $scampus=$row[0]["corporativo"];
-            $ncampus="corporativo";
-        }else if($campus== 13){
-            $scampus=$row[0]["sanjuan5"];
-            $ncampus="sanjuan5";
-        }
 
-        if(($scampus-$cantidad) <0 ){
+        if(($row[0]["stock"]-$cantidad) <0 ){
             $response=2;
         }else{
              try{
-             $query = "UPDATE inventario SET ".$ncampus."=".$scampus."-".$cantidad." WHERE id='".$articulo."'";
+             $query = "UPDATE inventario_stock SET stock=stock-".$cantidad." WHERE articulo_id='".$articulo."'";
                 $exc_query = $dbconn->prepare($query);
                 $exc_query->execute();
 
@@ -1802,7 +1773,7 @@ switch($_REQUEST['op']){
                                         COALESCE(SUM(CASE WHEN s.plantel_id = 6  THEN s.stock END), 0) AS `NOPALA`,
                                         COALESCE(SUM(CASE WHEN s.plantel_id = 7  THEN s.stock END), 0) AS `EN LINEA`,
                                         COALESCE(SUM(CASE WHEN s.plantel_id = 8  THEN s.stock END), 0) AS `CORPORATIVO`,
-                                        COALESCE(SUM(s.stock), 0) AS total,
+                                        COALESCE(SUM(s.stock), 0) AS total,i.marca,
                                         i.foto
                                     FROM inventario i
                                     LEFT JOIN inventario_stock s ON s.articulo_id = i.id
@@ -1815,7 +1786,7 @@ switch($_REQUEST['op']){
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $response=' <div class="modal-header">
-                            <h5 class="modal-title" id="exampleModalLabel">ARTICULO: '.$rows[0]["nombre"].'</h5>
+                            <h5 class="modal-title" id="exampleModalLabel">ARTICULO: '.$rows[0]["nombre"].' | '.$rows[0]["marca"].'</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
@@ -1826,7 +1797,7 @@ switch($_REQUEST['op']){
                                         <div class="col-md-10">
                                         <div class="form-group">
                                             <label for="nombre">Nombre</label>
-                                            <input type="text" class="form-control" id="nombre" disabled  value="'.$rows[0]["nombre"].'"> 
+                                            <input type="text" class="form-control" id="nombre" disabled  value="'.$rows[0]["nombre"].' | '.$rows[0]["marca"].'"> 
                                         </div>
                                         </div>
 
@@ -2178,7 +2149,7 @@ switch($_REQUEST['op']){
         $rows5 = $stmt5->fetchAll(PDO::FETCH_ASSOC);
         $response='
                     <div class="modal-header">
-                            <h5 class="modal-title" id="addProspectModalLabel">Modificación de: '.$rows[0]["nombre"].'</h5>
+                            <h5 class="modal-title" id="addProspectModalLabel">Modificación de: '.$rows[0]["nombre"].' | '.$rows[0]["marca"].'</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>

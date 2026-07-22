@@ -16,19 +16,108 @@ $sesion = explode("|", $_SESSION["usuario"]);
             include("include/perfil.php");
             include("include/conn.php");
 
-            $stmt = $dbconn->prepare("SELECT
-                id, codigo, nombre, medida,
-                IFNULL(sanjuan,0)      sanjuan,
-                IFNULL(sanjuan5,0)     sanjuan5,
-                IFNULL(aculco,0)       aculco,
-                IFNULL(tecamac,0)      tecamac,
-                IFNULL(tepeji,0)       tepeji,
-                IFNULL(atlacomulco,0)  atlacomulco,
-                IFNULL(nopala,0)       nopala,
-                IFNULL(enlinea,0)      enlinea,
-                IFNULL(corporativo,0)  corporativo,
-                IFNULL(sanjuan+sanjuan5+aculco+tecamac+tepeji+atlacomulco+nopala+enlinea+corporativo,0) AS total
-                FROM inventario WHERE status=1 ORDER BY id ASC");
+            /*
+             * PIVOT de stock por campus calculado desde inventario_movimientos.
+             *
+             * Lógica de tipos:
+             *   tipo = 1  → Ingreso:   +cantidad en campusIngreso
+             *   tipo = 2  → Egreso:    -cantidad en campusEgreso
+             *   tipo = 3  → Traspaso:  +cantidad en campusIngreso, -cantidad en campusEgreso
+             *
+             * Planteles:
+             *   1  = San Juan del Río (SJR)
+             *   13 = San Juan 5 de Mayo (SJR5)
+             *   2  = Aculco (ACU)
+             *   3  = Tecámac (TEC)
+             *   5  = Tepeji del Río (TEP)
+             *   4  = Atlacomulco (ATL)
+             *   6  = Nopala (NOP)
+             *   7  = En Línea (LIN)
+             *   8  = Corporativo (COR)
+             */
+            $stmt = $dbconn->prepare("
+                SELECT
+                    i.id,
+                    i.codigo,
+                    i.nombre,
+                    i.medida,
+
+                    -- San Juan del Río (plantel 1)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 1  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 1  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS sanjuan,
+
+                    -- San Juan 5 de Mayo (plantel 13)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 13 THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 13 THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS sanjuan5,
+
+                    -- Aculco (plantel 2)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 2  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 2  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS aculco,
+
+                    -- Tecámac (plantel 3)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 3  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 3  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS tecamac,
+
+                    -- Tepeji del Río (plantel 5)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 5  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 5  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS tepeji,
+
+                    -- Atlacomulco (plantel 4)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 4  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 4  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS atlacomulco,
+
+                    -- Nopala (plantel 6)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 6  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 6  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS nopala,
+
+                    -- En Línea (plantel 7)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 7  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 7  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS enlinea,
+
+                    -- Corporativo (plantel 8)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 8  THEN  m.cantidad
+                             WHEN m.tipo IN (2,3) AND m.campusEgreso  = 8  THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS corporativo,
+
+                    -- Total general (suma de todos los campus)
+                    GREATEST(0, IFNULL(SUM(
+                        CASE WHEN m.tipo IN (1,3) THEN  m.cantidad
+                             WHEN m.tipo = 2      THEN -m.cantidad
+                             ELSE 0 END
+                    ), 0)) AS total
+
+                FROM inventario i
+                LEFT JOIN inventario_movimientos m ON m.articulo = i.id
+                WHERE i.status = 1
+                GROUP BY i.id, i.codigo, i.nombre, i.medida
+                ORDER BY i.id ASC
+            ");
             $stmt->execute();
             $articulos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             ?>
@@ -54,7 +143,6 @@ $sesion = explode("|", $_SESSION["usuario"]);
 
                 <!-- ── KPI Cards ─────────────────────────────────────────── -->
                 <div class="row mb-4">
-                    <!-- Artículos activos (no clickable, el dato ya está en la tabla) -->
                     <div class="col-xl-3 col-md-6 mb-3">
                         <div class="card border-left-primary shadow h-100 py-2">
                             <div class="card-body">
@@ -71,7 +159,6 @@ $sesion = explode("|", $_SESSION["usuario"]);
                             </div>
                         </div>
                     </div>
-                    <!-- Stock total (no clickable, la gráfica de barras lo muestra) -->
                     <div class="col-xl-3 col-md-6 mb-3">
                         <div class="card border-left-success shadow h-100 py-2">
                             <div class="card-body">
@@ -88,7 +175,6 @@ $sesion = explode("|", $_SESSION["usuario"]);
                             </div>
                         </div>
                     </div>
-                    <!-- Movimientos del mes → abre modal con detalle -->
                     <div class="col-xl-3 col-md-6 mb-3">
                         <div class="card border-left-info shadow h-100 py-2"
                              onclick="verMovimientosMes(-1)"
@@ -109,7 +195,6 @@ $sesion = explode("|", $_SESSION["usuario"]);
                             </div>
                         </div>
                     </div>
-                    <!-- Egresos del mes → abre modal filtrado a tipo=2 -->
                     <div class="col-xl-3 col-md-6 mb-3">
                         <div class="card border-left-warning shadow h-100 py-2"
                              onclick="verMovimientosMes(2)"
@@ -196,11 +281,11 @@ $sesion = explode("|", $_SESSION["usuario"]);
                                         <th>ID</th>
                                         <th>Código</th>
                                         <th>Nombre</th>
-                                        <th title="San Juan">SJR</th>
-                                        <th title="San Juan 5">SJR5</th>
+                                        <th title="San Juan del Río">SJR</th>
+                                        <th title="San Juan 5 de Mayo">SJR5</th>
                                         <th title="Aculco">ACU</th>
-                                        <th title="Tecamac">TEC</th>
-                                        <th title="Tepeji">TEP</th>
+                                        <th title="Tecámac">TEC</th>
+                                        <th title="Tepeji del Río">TEP</th>
                                         <th title="Atlacomulco">ATL</th>
                                         <th title="Nopala">NOP</th>
                                         <th title="En Línea">LIN</th>
