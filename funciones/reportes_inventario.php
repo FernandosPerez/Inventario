@@ -12,7 +12,21 @@ $campusLabel = [
 $badgeClass = [0=>'success',1=>'primary',2=>'warning',3=>'info',4=>'secondary',5=>'danger'];
 $tipoNombre = [0=>'Alta',1=>'Ingreso',2=>'Egreso',3=>'Transferencia',4=>'Actualización',5=>'Baja'];
 
-// Reutilizable: genera una fila de movimiento para el modal
+// ── Campus filter ────────────────────────────────────────────────────────────
+$campusPost = isset($_POST['campus']) && $_POST['campus'] !== '' ? (int)$_POST['campus'] : 0;
+
+$campusCol = [
+    1=>'sanjuan', 13=>'sanjuan5', 2=>'aculco', 3=>'tecamac',
+    5=>'tepeji', 4=>'atlacomulco', 6=>'nopala', 7=>'enlinea', 8=>'corporativo'
+];
+
+function campusMovWhere($campus) {
+    if (!$campus) return '';
+    $campus = (int)$campus;
+    return "AND (campusIngreso = $campus OR campusEgreso = $campus)";
+}
+
+// ── Reutilizable: genera fila de movimiento para modal ───────────────────────
 function rowMovimiento($r, $campusLabel, $badgeClass, $tipoNombre, $mostrarArticulo = false) {
     $ti    = (int)$r['tipo'];
     $badge = $badgeClass[$ti] ?? 'secondary';
@@ -52,43 +66,104 @@ function rowMovimiento($r, $campusLabel, $badgeClass, $tipoNombre, $mostrarArtic
 
 switch ((int)$_REQUEST['op']) {
 
-    case 1: // KPIs del mes actual
-        $a = $dbconn->query("SELECT COUNT(*) FROM inventario WHERE status=1")->fetchColumn();
-        $s = $dbconn->query("SELECT IFNULL(SUM(sanjuan+sanjuan5+aculco+tecamac+tepeji+atlacomulco+nopala+enlinea+corporativo),0) FROM inventario WHERE status=1")->fetchColumn();
-        $m = $dbconn->query("SELECT COUNT(*) FROM inventario_movimientos WHERE MONTH(hora)=MONTH(NOW()) AND YEAR(hora)=YEAR(NOW())")->fetchColumn();
-        $e = $dbconn->query("SELECT COUNT(*) FROM inventario_movimientos WHERE tipo=2 AND MONTH(hora)=MONTH(NOW()) AND YEAR(hora)=YEAR(NOW())")->fetchColumn();
-        $mes = date('F Y'); // nombre del mes actual para mostrar en modales
-        echo json_encode(['articulos'=>(int)$a,'stock'=>(int)$s,'movimientos'=>(int)$m,'egresos'=>(int)$e,'mes'=>$mes]);
-        break;
+   case 1: // KPIs
+    $a = $dbconn->query("SELECT COUNT(*) FROM inventario WHERE status=1")->fetchColumn();
 
-    case 2: // Stock por campus (bar chart)
-        $r = $dbconn->query("SELECT
-            IFNULL(SUM(sanjuan),0) sanjuan, IFNULL(SUM(sanjuan5),0) sanjuan5,
-            IFNULL(SUM(aculco),0) aculco,   IFNULL(SUM(tecamac),0) tecamac,
-            IFNULL(SUM(tepeji),0) tepeji,   IFNULL(SUM(atlacomulco),0) atlacomulco,
-            IFNULL(SUM(nopala),0) nopala,   IFNULL(SUM(enlinea),0) enlinea,
-            IFNULL(SUM(corporativo),0) corporativo
-            FROM inventario WHERE status=1")->fetch(PDO::FETCH_ASSOC);
-        echo json_encode($r);
-        break;
+    // Stock: calculado desde movimientos (igual que el pivot del main)
+    if ($campusPost && isset($campusCol[$campusPost])) {
+        $stmt = $dbconn->prepare("
+            SELECT GREATEST(0, IFNULL(SUM(
+                CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = ? THEN  m.cantidad
+                     WHEN m.tipo IN (2,3) AND m.campusEgreso  = ? THEN -m.cantidad
+                     ELSE 0 END
+            ), 0))
+            FROM inventario i
+            LEFT JOIN inventario_movimientos m ON m.articulo = i.id
+            WHERE i.status = 1
+        ");
+        $stmt->execute([$campusPost, $campusPost]);
+        $s = $stmt->fetchColumn();
+    } else {
+        $stmt = $dbconn->query("
+            SELECT GREATEST(0, IFNULL(SUM(
+                CASE WHEN m.tipo IN (1,3) THEN  m.cantidad
+                     WHEN m.tipo = 2      THEN -m.cantidad
+                     ELSE 0 END
+            ), 0))
+            FROM inventario i
+            LEFT JOIN inventario_movimientos m ON m.articulo = i.id
+            WHERE i.status = 1
+        ");
+        $s = $stmt->fetchColumn();
+    }
 
-    case 3: // Tipos de movimiento (doughnut) — usa rango de fechas
-        $desde = !empty($_POST['desde']) ? $_POST['desde'] : date('Y-01-01');
-        $hasta = !empty($_POST['hasta']) ? $_POST['hasta'] : date('Y-m-d');
-        $stmt  = $dbconn->prepare("SELECT tipo, COUNT(*) as total
+    $wCampus = campusMovWhere($campusPost);
+    $m = $dbconn->query("SELECT COUNT(*) FROM inventario_movimientos
+                          WHERE MONTH(hora)=MONTH(NOW()) AND YEAR(hora)=YEAR(NOW()) $wCampus")->fetchColumn();
+
+    if ($campusPost) {
+        $stmtE = $dbconn->prepare("SELECT COUNT(*) FROM inventario_movimientos
+                                    WHERE tipo=2 AND campusEgreso=?
+                                    AND MONTH(hora)=MONTH(NOW()) AND YEAR(hora)=YEAR(NOW())");
+        $stmtE->execute([$campusPost]);
+        $e = $stmtE->fetchColumn();
+    } else {
+        $e = $dbconn->query("SELECT COUNT(*) FROM inventario_movimientos
+                              WHERE tipo=2 AND MONTH(hora)=MONTH(NOW()) AND YEAR(hora)=YEAR(NOW())")->fetchColumn();
+    }
+
+    echo json_encode(['articulos'=>(int)$a,'stock'=>(int)$s,'movimientos'=>(int)$m,'egresos'=>(int)$e]);
+    break;
+
+case 2: // Stock por campus (bar chart) — pivot desde movimientos
+    $stmt = $dbconn->query("
+        SELECT
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 1  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 1  THEN -m.cantidad ELSE 0 END),0)) AS sanjuan,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 13 THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 13 THEN -m.cantidad ELSE 0 END),0)) AS sanjuan5,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 2  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 2  THEN -m.cantidad ELSE 0 END),0)) AS aculco,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 3  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 3  THEN -m.cantidad ELSE 0 END),0)) AS tecamac,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 5  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 5  THEN -m.cantidad ELSE 0 END),0)) AS tepeji,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 4  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 4  THEN -m.cantidad ELSE 0 END),0)) AS atlacomulco,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 6  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 6  THEN -m.cantidad ELSE 0 END),0)) AS nopala,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 7  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 7  THEN -m.cantidad ELSE 0 END),0)) AS enlinea,
+            GREATEST(0, IFNULL(SUM(CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 8  THEN  m.cantidad
+                                        WHEN m.tipo IN (2,3) AND m.campusEgreso  = 8  THEN -m.cantidad ELSE 0 END),0)) AS corporativo
+        FROM inventario i
+        LEFT JOIN inventario_movimientos m ON m.articulo = i.id
+        WHERE i.status = 1
+    ");
+    echo json_encode($stmt->fetch(PDO::FETCH_ASSOC));
+    break;
+
+    case 3: // Tipos de movimiento (doughnut)
+        $desde   = !empty($_POST['desde']) ? $_POST['desde'] : date('Y-01-01');
+        $hasta   = !empty($_POST['hasta']) ? $_POST['hasta'] : date('Y-m-d');
+        $wCampus = campusMovWhere($campusPost);
+        $stmt    = $dbconn->prepare("SELECT tipo, COUNT(*) as total
             FROM inventario_movimientos
             WHERE hora >= CONCAT(?,' 00:00:00') AND hora <= CONCAT(?,' 23:59:59')
+            $wCampus
             GROUP BY tipo ORDER BY tipo");
         $stmt->execute([$desde, $hasta]);
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         break;
 
-    case 4: // Tendencia mensual (line chart) — usa rango de fechas
-        $desde = !empty($_POST['desde']) ? $_POST['desde'] : date('Y-01-01');
-        $hasta = !empty($_POST['hasta']) ? $_POST['hasta'] : date('Y-m-d');
-        $stmt  = $dbconn->prepare("SELECT DATE_FORMAT(hora,'%Y-%m') mes, tipo, COUNT(*) total
+    case 4: // Tendencia mensual (line chart)
+        $desde   = !empty($_POST['desde']) ? $_POST['desde'] : date('Y-01-01');
+        $hasta   = !empty($_POST['hasta']) ? $_POST['hasta'] : date('Y-m-d');
+        $wCampus = campusMovWhere($campusPost);
+        $stmt    = $dbconn->prepare("SELECT DATE_FORMAT(hora,'%Y-%m') mes, tipo, COUNT(*) total
             FROM inventario_movimientos
             WHERE hora >= CONCAT(?,' 00:00:00') AND hora <= CONCAT(?,' 23:59:59')
+            $wCampus
             GROUP BY mes, tipo ORDER BY mes ASC");
         $stmt->execute([$desde, $hasta]);
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
@@ -161,11 +236,19 @@ switch ((int)$_REQUEST['op']) {
         echo $html;
         break;
 
-    case 6: // Movimientos del mes actual (para KPI cards)
-        // tipo: -1 = todos, 0-5 = filtro específico
-        $tipo = isset($_POST['tipo']) ? (int)$_POST['tipo'] : -1;
+    case 6: // Movimientos del mes actual
+        $tipo    = isset($_POST['tipo']) ? (int)$_POST['tipo'] : -1;
+        $wTipo   = $tipo >= 0 ? "AND im.tipo = $tipo" : '';
 
-        $filtroTipo = $tipo >= 0 ? "AND im.tipo = $tipo" : '';
+        // Para egresos (tipo=2) filtra por campusEgreso, para el resto por cualquiera de los dos
+        if ($campusPost) {
+            $wCampus = $tipo === 2
+                ? "AND im.campusEgreso = $campusPost"
+                : "AND (im.campusIngreso = $campusPost OR im.campusEgreso = $campusPost)";
+        } else {
+            $wCampus = '';
+        }
+
         $stmt = $dbconn->prepare("
             SELECT im.*,
                 inv.codigo,
@@ -177,16 +260,17 @@ switch ((int)$_REQUEST['op']) {
             LEFT JOIN usuarios u  ON u.id = im.usuario
             LEFT JOIN usuarios uf ON uf.id = im.usuario_final
             WHERE MONTH(im.hora)=MONTH(NOW()) AND YEAR(im.hora)=YEAR(NOW())
-            $filtroTipo
+            $wTipo $wCampus
             ORDER BY im.hora DESC");
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $campusNombre = $campusPost && isset($campusLabel[$campusPost]) ? ' — '.$campusLabel[$campusPost] : '';
         $titulos = [
-            -1 => 'Todos los movimientos de '.date('F Y'),
-             2 => 'Egresos de '.date('F Y'),
+            -1 => 'Todos los movimientos de '.date('F Y').$campusNombre,
+             2 => 'Egresos de '.date('F Y').$campusNombre,
         ];
-        $titulo = $titulos[$tipo] ?? 'Movimientos de '.date('F Y');
+        $titulo = $titulos[$tipo] ?? 'Movimientos de '.date('F Y').$campusNombre;
 
         $html = '
         <div class="modal-header bg-dark text-white py-3">

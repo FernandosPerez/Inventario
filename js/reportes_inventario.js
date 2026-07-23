@@ -6,7 +6,7 @@ var campusColors = ['#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b','#858796',
 var tipoNombres  = ['Alta','Ingreso','Egreso','Transferencia','Actualización','Baja'];
 var tipoColors   = ['#28a745','#007bff','#ffc107','#17a2b8','#6c757d','#dc3545'];
 
-// ── Fecha local (sin conversión UTC para evitar desfase de zona horaria) ────
+// ── Fecha local ─────────────────────────────────────────────────────────────
 function localDate(d) {
     var y   = d.getFullYear();
     var m   = String(d.getMonth() + 1).padStart(2, '0');
@@ -22,12 +22,20 @@ function ajaxPost(data, cb) {
     xhr.send(data);
 }
 
-function getDesde() { return document.getElementById('fDesde').value; }
-function getHasta() { return document.getElementById('fHasta').value; }
+// ── Getters ─────────────────────────────────────────────────────────────────
+function getDesde()  { return document.getElementById('fDesde').value; }
+function getHasta()  { return document.getElementById('fHasta').value; }
+function getCampus() { return document.getElementById('fCampus').value; }
 
-// ── KPI cards ──────────────────────────────────────────────────────────────
+function baseParams() {
+    return 'campus=' + encodeURIComponent(getCampus())
+         + '&desde='  + encodeURIComponent(getDesde())
+         + '&hasta='  + encodeURIComponent(getHasta());
+}
+
+// ── KPI cards ───────────────────────────────────────────────────────────────
 function cargarKPIs() {
-    ajaxPost('op=1', function (txt) {
+    ajaxPost('op=1&' + baseParams(), function (txt) {
         var d = JSON.parse(txt);
         document.getElementById('kpiArticulos').textContent   = d.articulos.toLocaleString('es-MX');
         document.getElementById('kpiStock').textContent       = d.stock.toLocaleString('es-MX');
@@ -36,31 +44,50 @@ function cargarKPIs() {
     });
 }
 
-// ── Modal de detalle mensual (movimientos o egresos) ────────────────────────
+// ── Modal de detalle mensual ─────────────────────────────────────────────────
 function verMovimientosMes(tipo) {
     var div = document.getElementById('contenidoHistorial');
     div.innerHTML = '<div class="text-center py-5">'
         + '<div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>'
         + '<p class="mt-3 text-muted">Cargando...</p></div>';
     $('#modalHistorial').modal('show');
-    ajaxPost('op=6&tipo=' + tipo, function (txt) { div.innerHTML = txt; });
+    ajaxPost('op=6&tipo=' + tipo + '&' + baseParams(), function (txt) { div.innerHTML = txt; });
 }
 
-// ── Bar chart: stock por campus ─────────────────────────────────────────────
+// ── Bar chart: stock por campus ──────────────────────────────────────────────
 function cargarChartCampus() {
-    ajaxPost('op=2', function (txt) {
-        var d = JSON.parse(txt);
-        var values = campusKeys.map(function (k) { return parseFloat(d[k]) || 0; });
+    ajaxPost('op=2&campus=' + encodeURIComponent(getCampus()), function (txt) {
+        var d   = JSON.parse(txt);
+        var cam = getCampus();
+        var labels, values, colors;
+
+        var campusIdToKey = {
+            '1':'sanjuan','13':'sanjuan5','2':'aculco','3':'tecamac',
+            '5':'tepeji','4':'atlacomulco','6':'nopala','7':'enlinea','8':'corporativo'
+        };
+
+        if (cam && campusIdToKey[cam]) {
+            var key = campusIdToKey[cam];
+            var idx = campusKeys.indexOf(key);
+            labels = [campusLabels[idx]];
+            values = [parseFloat(d[key]) || 0];
+            colors = [campusColors[idx]];
+        } else {
+            labels = campusLabels;
+            values = campusKeys.map(function (k) { return parseFloat(d[k]) || 0; });
+            colors = campusColors;
+        }
+
         if (chartCampus) chartCampus.destroy();
         chartCampus = new Chart(document.getElementById('chartCampus'), {
             type: 'bar',
             data: {
-                labels: campusLabels,
+                labels: labels,
                 datasets: [{
                     label: 'Stock actual',
                     data: values,
-                    backgroundColor: campusColors,
-                    borderColor: campusColors,
+                    backgroundColor: colors,
+                    borderColor: colors,
                     borderWidth: 1,
                     borderRadius: 4
                 }]
@@ -77,9 +104,9 @@ function cargarChartCampus() {
     });
 }
 
-// ── Doughnut: tipos de movimiento ───────────────────────────────────────────
+// ── Doughnut: tipos de movimiento ────────────────────────────────────────────
 function cargarChartTipos() {
-    ajaxPost('op=3&desde=' + encodeURIComponent(getDesde()) + '&hasta=' + encodeURIComponent(getHasta()), function (txt) {
+    ajaxPost('op=3&' + baseParams(), function (txt) {
         var rows = JSON.parse(txt);
         if (!rows || !rows.length) {
             document.getElementById('chartTipos').parentElement.innerHTML =
@@ -108,9 +135,9 @@ function cargarChartTipos() {
     });
 }
 
-// ── Line chart: tendencia mensual ───────────────────────────────────────────
+// ── Line chart: tendencia mensual ────────────────────────────────────────────
 function cargarChartTendencia() {
-    ajaxPost('op=4&desde=' + encodeURIComponent(getDesde()) + '&hasta=' + encodeURIComponent(getHasta()), function (txt) {
+    ajaxPost('op=4&' + baseParams(), function (txt) {
         var rows = JSON.parse(txt);
         if (!rows || !rows.length) {
             var canvas = document.getElementById('chartTendencia');
@@ -164,12 +191,7 @@ function cargarChartTendencia() {
     });
 }
 
-function actualizarGraficas() {
-    cargarChartTipos();
-    cargarChartTendencia();
-}
-
-// ── Modal historial de artículo ─────────────────────────────────────────────
+// ── Modal historial de artículo ──────────────────────────────────────────────
 function verHistorial(id) {
     var div = document.getElementById('contenidoHistorial');
     div.innerHTML = '<div class="text-center py-5">'
@@ -179,10 +201,20 @@ function verHistorial(id) {
     ajaxPost('op=5&articulo=' + id, function (txt) { div.innerHTML = txt; });
 }
 
-// ── Inicio ──────────────────────────────────────────────────────────────────
+// ── Actualizar todo ──────────────────────────────────────────────────────────
+function actualizarTodo() {
+    cargarKPIs();
+    cargarChartCampus();
+    cargarChartTipos();
+    cargarChartTendencia();
+}
+
+function actualizarGraficas() { actualizarTodo(); }
+
+// ── Inicio ───────────────────────────────────────────────────────────────────
 (function init() {
     var today = new Date();
-    var from  = new Date(today.getFullYear(), 0, 1); // 1 de enero del año actual
+    var from  = new Date(today.getFullYear(), 0, 1);
 
     document.getElementById('fDesde').value = localDate(from);
     document.getElementById('fHasta').value = localDate(today);

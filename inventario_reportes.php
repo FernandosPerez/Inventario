@@ -42,70 +42,60 @@ $sesion = explode("|", $_SESSION["usuario"]);
                     i.nombre,
                     i.medida,
 
-                    -- San Juan del Río (plantel 1)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 1  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 1  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS sanjuan,
 
-                    -- San Juan 5 de Mayo (plantel 13)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 13 THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 13 THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS sanjuan5,
 
-                    -- Aculco (plantel 2)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 2  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 2  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS aculco,
 
-                    -- Tecámac (plantel 3)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 3  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 3  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS tecamac,
 
-                    -- Tepeji del Río (plantel 5)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 5  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 5  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS tepeji,
 
-                    -- Atlacomulco (plantel 4)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 4  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 4  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS atlacomulco,
 
-                    -- Nopala (plantel 6)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 6  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 6  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS nopala,
 
-                    -- En Línea (plantel 7)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 7  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 7  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS enlinea,
 
-                    -- Corporativo (plantel 8)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) AND m.campusIngreso = 8  THEN  m.cantidad
                              WHEN m.tipo IN (2,3) AND m.campusEgreso  = 8  THEN -m.cantidad
                              ELSE 0 END
                     ), 0)) AS corporativo,
 
-                    -- Total general (suma de todos los campus)
                     GREATEST(0, IFNULL(SUM(
                         CASE WHEN m.tipo IN (1,3) THEN  m.cantidad
                              WHEN m.tipo = 2      THEN -m.cantidad
@@ -124,18 +114,31 @@ $sesion = explode("|", $_SESSION["usuario"]);
 
             <div class="container-fluid">
 
-                <!-- Título + filtro de fechas -->
+                <!-- Título + filtros -->
                 <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
                     <h1 class="h3 mb-0 text-gray-800">
                         <i class="fa-solid fa-chart-column mr-2" style="color:#4e73df"></i>
                         Reportes de Inventario
                     </h1>
                     <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
-                        <label class="mb-0 small font-weight-bold text-gray-600">Período:</label>
+                        <label class="mb-0 small font-weight-bold text-gray-600">Campus:</label>
+                        <select id="fCampus" class="form-control form-control-sm" style="width:160px" onchange="actualizarTodo()">
+                            <option value="">Todos</option>
+                            <option value="1">San Juan del Río</option>
+                            <option value="13">SJR 5 de Mayo</option>
+                            <option value="2">Aculco</option>
+                            <option value="3">Tecámac</option>
+                            <option value="5">Tepeji del Río</option>
+                            <option value="4">Atlacomulco</option>
+                            <option value="6">Nopala</option>
+                            <option value="7">En Línea</option>
+                            <option value="8">Corporativo</option>
+                        </select>
+                        <label class="mb-0 small font-weight-bold text-gray-600 ml-2">Período:</label>
                         <input type="date" id="fDesde" class="form-control form-control-sm" style="width:140px">
                         <span class="text-muted">—</span>
                         <input type="date" id="fHasta" class="form-control form-control-sm" style="width:140px">
-                        <button onclick="actualizarGraficas()" class="btn btn-sm btn-primary">
+                        <button onclick="actualizarTodo()" class="btn btn-sm btn-primary">
                             <i class="fas fa-sync-alt mr-1"></i>Actualizar
                         </button>
                     </div>
@@ -334,13 +337,7 @@ $sesion = explode("|", $_SESSION["usuario"]);
             <!-- /.container-fluid -->
         </div>
 
-        <footer class="sticky-footer bg-white">
-            <div class="container my-auto">
-                <div class="copyright text-center my-auto">
-                    <span style="color:#858796">Copyright &copy; SECUIEP 2024</span>
-                </div>
-            </div>
-        </footer>
+        <?php include("include/footer.php"); ?>
     </div>
 </div>
 
